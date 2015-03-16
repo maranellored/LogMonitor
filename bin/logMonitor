@@ -1,0 +1,37 @@
+#!/usr/bin/env ruby
+
+$:.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
+require 'optparse'
+require 'logmonitor'
+require 'logger'
+
+def run()
+  options = {}
+  opt_parser = OptionParser.new do |opts|
+    # FIXME: Finish this description
+    opts.banner = "Usage: LogMonitor!!!"
+
+    opts.on('-h', '--help', 'Displays this help message') do
+      puts opts
+      exit
+    end
+
+    options[:debug] = false
+    opts.on('-d', '--debug', 'Indicate if you need debug output') do
+      options[:debug] = true
+    end
+  end
+
+  opt_parser.parse!
+
+  begin
+    logMonitor = LogMonitor::LogMonitor.new()
+    logMonitor.start()
+  rescue ArgumentError => e
+    puts "#{e.message}"
+  end
+end
+
+if __FILE__ == $0
+  run()
+end
