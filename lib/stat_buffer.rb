@@ -83,12 +83,11 @@ module LogMonitor
     # Prints a message to the printer if the threshold is exceeded.
     def check_if_alarm_breached(current_time)
       if @queue.length > @alarm_threshold
-        @logger.info("Queue length while alarming is #{@queue.length}")
-        @printer.print_alarm(@queue.length, current_time) #unless @in_alarm
+        @logger.debug("Queue length while alarming is #{@queue.length}")
+        @printer.print_alarm(@queue.length, current_time) unless @in_alarm
         @in_alarm = true
       else
-        @logger.info("Queue length is #{@queue.length}")
-        @logger.info("Clearing alarm now....")
+        @logger.debug("Queue length is #{@queue.length}")
         @printer.clear_alarm(current_time) if @in_alarm
         @in_alarm = false
       end

@@ -55,7 +55,7 @@ def run()
   begin
     logMonitor = LogMonitor::LogMonitor.new(options[:file], 
                                             options[:alert_threshold].to_i, 
-                                            options[:alert_interval].to_i, 
+                                            options[:alert_interval].to_f, 
                                             options[:stats_freq].to_i,
                                             logger)
     logMonitor.start()

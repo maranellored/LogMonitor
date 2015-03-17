@@ -36,10 +36,12 @@ module LogMonitor
     end
 
     def clear_alarm(time)
-      @historical_alerts << @current_alert[0]
+      time_str = Time.at(time).to_s
+
+      msg = @current_alert[0].strip + ". Cleared at #{time_str}\n"
+      @historical_alerts << msg
       @current_alert.clear
 
-      time_str = Time.at(time).to_s
       msg = "Request count is back to normal at #{time_str}\n"
       @current_alert << msg
 
