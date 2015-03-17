@@ -16,16 +16,48 @@ def run()
       exit
     end
 
-    options[:debug] = false
-    opts.on('-d', '--debug', 'Indicate if you need debug output') do
-      options[:debug] = true
+    opts.on('-f', '--file f', 'The path to the log file to parse') do |f|
+      options[:file] = f
     end
+
+    options[:stats_freq] = 10
+    opts.on('-s', '--stats-freq v', 'The frequency at which to publish the' +
+            'stats') do |v|
+      options[:stats_freq] = v
+    end
+
+    options[:alert_interval] = 2
+    opts.on('-i', '--alert-interval m', 'The interval in minutes to check for' +
+            'max requests. Default 2') do |m|
+      options[:alert_interval] = m
+    end
+
+    options[:alert_threshold] = 5
+    opts.on('-t', '--alert-threshold t', 'The threshold above which to raise' +
+            'an alert. Default 5') do |t|
+      options[:alert_threshold] = t
+    end
+
   end
 
   opt_parser.parse!
 
+  # Raise an error if the file is not given
+  raise OptionParser::MissingArgument("Please specify a filename to \
+                                      monitor") if options[:file].nil?
+
+  logger = Logger.new("/tmp/log")
+  logger.level = options[:debug]? Logger::DEBUG : Logger::INFO
+  logger.formatter = proc do |severity, datetime, progname, msg|
+    "#{datetime} #{severity} - #{msg}\n"
+  end
+
   begin
-    logMonitor = LogMonitor::LogMonitor.new()
+    logMonitor = LogMonitor::LogMonitor.new(options[:file], 
+                                            options[:alert_threshold].to_i, 
+                                            options[:alert_interval].to_i, 
+                                            options[:stats_freq].to_i,
+                                            logger)
     logMonitor.start()
   rescue ArgumentError => e
     puts "#{e.message}"
