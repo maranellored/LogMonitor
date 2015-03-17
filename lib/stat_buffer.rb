@@ -14,6 +14,8 @@ module LogMonitor
   
   class StatBuffer
     
+    attr_reader :total_requests, :successful_requests, :get_requests
+
     def initialize(time_interval, alarm_threshold, console_printer, logger)
       @logger = logger
 
@@ -24,6 +26,8 @@ module LogMonitor
       # This hash will give out default values of 0 
       @section_counter = Hash.new 0
       @total_requests = 0
+      @successful_requests = 0
+      @get_requests = 0
 
       @time_interval = time_interval * 60
       @alarm_threshold = alarm_threshold
@@ -39,11 +43,18 @@ module LogMonitor
       @section_counter[section] += 1
     end
 
+    def add_successful_request
+      @successful_requests += 1
+    end
+
+    def add_get_request
+      @get_requests += 1
+    end
+
     # Retrieves the most common section that is available
     # The parameter, x allows for the user to specify the top 'x' sections
     # Returns an array with key as the first element and the value as second
     def find_most_common_section
-      puts "Find most_common_section called..."
       return @section_counter.max_by{|k, v| v}
     end
 
@@ -52,17 +63,8 @@ module LogMonitor
     def add_request(timestamp)
       # add to total requests
       @total_requests += 1
-      current_time = Time.new.to_i
-      @logger.info("Pushing timestamp: #{Time.at(timestamp).to_s}")
+      @logger.debug("Pushing timestamp: #{Time.at(timestamp).to_s}")
       @queue.push(timestamp)
-
-      prune_old_values(current_time)
-      check_if_alarm_breached(current_time)
-    end
-
-    # Get the total number of requests seen in the logfile
-    def get_total_requests
-      return @total_requests
     end
 
     # Prune the old values from the queue. 

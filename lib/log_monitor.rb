@@ -6,10 +6,8 @@
 ################################################################################
 
 require 'apachelogregex'
-require 'consolePrinter'
-require 'statBuffer'
-
-require 'pry'
+require 'console_printer'
+require 'stat_buffer'
 
 module LogMonitor
 
@@ -42,7 +40,9 @@ module LogMonitor
 
       @parser_thread = Thread.new{log_parser(file)}
       @stats_thread = Thread.new{gather_statistics}
+      @alerter_thread = Thread.new{generate_alerts}
 
+      @alerter_thread.join
       @stats_thread.join
       @parser_thread.join
 
@@ -50,6 +50,13 @@ module LogMonitor
       file.close
     end
     
+    def stop
+      @keep_running = false
+    end
+
+    # Everything below here are private methods used internally
+    # by this logmonitor class.
+    private
     def log_parser(file)
       loop do
         # Break if we don't want to run anymore.
@@ -83,10 +90,6 @@ module LogMonitor
 
     end
 
-    def stop
-      @keep_running = false
-    end
-
     def process(line)
       # Regex match here to make sure that the line is valid
       begin
@@ -99,26 +102,46 @@ module LogMonitor
       requester = result['%h']
       method, url, protocol = result['%r'].split
       section = url.split('/')[0..1].join('/')
+      status = result['%>s']
       # Remove braces from the timestamp
       timestamp_string = result['%t'].delete('[]')
       # Get seconds since epoch
       timestamp = Time.parse(timestamp_string.sub(":", " ")).to_i
       
       # now add this to my internal structure and just display it
-      @stats_buffer.add_section(section)
       @stats_buffer.add_request(timestamp)
+      @stats_buffer.add_section(section)
+      @stats_buffer.add_get_request if method.upcase.eql? 'GET'
+      @stats_buffer.add_successful_request if status.eql? "200"    
     end
 
     def gather_statistics
       while @keep_running
-        sleep(@stats_frequency)
         stats_map = {}
         section, count = @stats_buffer.find_most_common_section
-        total_requests = @stats_buffer.get_total_requests
         stats_map[:section] = [section, count]
-        stats_map[:requests] = total_requests
+        stats_map[:requests] = @stats_buffer.total_requests
+        stats_map[:get_requests] = @stats_buffer.get_requests
+        stats_map[:successful_requests] = @stats_buffer.successful_requests
         @printer.print_stats(stats_map)
+        sleep(@stats_frequency)
       end
+    end
+
+    # A method that is used by a thread to check the alarm conditions
+    # This is necessary so that we can perform the check on the alert
+    # irrespective of there being requests flowing to the web server or 
+    # not
+    def generate_alerts
+      while @keep_running
+        current_time = Time.new.to_i
+        @stats_buffer.prune_old_values(current_time)
+        @stats_buffer.check_if_alarm_breached(current_time)
+      
+        #Sleep for a second
+        sleep(1)   
+      end
+
     end
 
   end # Class end

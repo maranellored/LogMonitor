@@ -2,7 +2,7 @@
 
 $:.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 require 'optparse'
-require 'logmonitor'
+require 'log_monitor'
 require 'logger'
 
 def run()

@@ -53,6 +53,8 @@ module LogMonitor
       section, count = stats[:section]
       msg = "Most commonly visited section: #{section} with #{count} visits\n"
       msg += "Total number of requests seen so far: #{stats[:requests]}\n"
+      msg += "Total number of HTTP GET requests seen so far: #{stats[:get_requests]}\n"
+      msg += "Total number of 200 responses seen so far: #{stats[:successful_requests]}\n"
       @statistics << msg
 
       print 
