@@ -2,10 +2,14 @@
 ##
 ##  The StatBuffer class 
 ##  Used to keep track of the stats in memory. 
-##  Uses counters to keep track of historic values
+##  Uses counters to keep track of the various metrics
 ##  Uses a queue to keep track of requests in the past time
 ##  
-##  Uses thread safe data structures to keep
+##  Uses a thread safe array as a queue to keep track of requests that might
+##  have exceeded the threshold.
+##  This queue assumes that all log entries have timestamps that are monotonically
+##  increasing. Also, assumes that the log timestamps can be compared to the
+##  current system time and that they are both synced from the same source. 
 ##
 ################################################################################
 
@@ -29,8 +33,8 @@ module LogMonitor
 
       # Create a hash to keep track of the sections. 
       # This hash will give out default values of 0 
-      @section_counter = Hash.new 0
-      @client_counter = Hash.new 0
+      @section_counter = ThreadSafe::Hash.new 0
+      @client_counter = ThreadSafe::Hash.new 0
 
       @total_requests = 0
       @successful_requests = 0
