@@ -28,7 +28,7 @@ def run()
 
     options[:alert_interval] = 2
     opts.on('-i', '--alert-interval m', 'The interval in minutes to check for' +
-            'max requests. Default 2') do |m|
+            'max requests. This can be a float value less than 1. Default 2') do |m|
       options[:alert_interval] = m
     end
 
@@ -36,6 +36,12 @@ def run()
     opts.on('-t', '--alert-threshold t', 'The threshold above which to raise' +
             'an alert. Default 5') do |t|
       options[:alert_threshold] = t
+    end
+
+    options[:url] = "http://localhost"
+    opts.on('-u', '--url u', 'The URL being served by this log file. ' +
+            'Default URL: http://localhost') do |u|
+      options[:url] = u
     end
 
   end
@@ -57,7 +63,9 @@ def run()
                                             options[:alert_threshold].to_i, 
                                             options[:alert_interval].to_f, 
                                             options[:stats_freq].to_i,
+                                            options[:url],
                                             logger)
+
     logMonitor.start()
   rescue ArgumentError => e
     puts "#{e.message}"

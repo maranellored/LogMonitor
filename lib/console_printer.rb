@@ -6,6 +6,7 @@
 ################################################################################
 
 require 'curses'
+require 'thread_safe'
 
 module LogMonitor
   class ConsolePrinter
@@ -13,9 +14,9 @@ module LogMonitor
     def initialize(logger)
       @logger = logger
 
-      @historical_alerts = []
-      @statistics = []
-      @current_alert = []
+      @historical_alerts = ThreadSafe::Array.new
+      @statistics = ThreadSafe::Array.new
+      @current_alert = ThreadSafe::Array.new
 
       Curses.noecho
       Curses.init_screen
@@ -57,6 +58,8 @@ module LogMonitor
       msg += "Total number of requests seen so far: #{stats[:requests]}\n"
       msg += "Total number of HTTP GET requests seen so far: #{stats[:get_requests]}\n"
       msg += "Total number of 200 responses seen so far: #{stats[:successful_requests]}\n"
+      msg += "Most frequent client: #{stats[:most_frequent_client]}\n"
+      msg += "Total number of unique clients: #{stats[:unique_clients]}\n"
       @statistics << msg
 
       print 
@@ -68,12 +71,7 @@ module LogMonitor
       Curses.clear
       Curses.setpos(0, 0)
   
-      msg = "Historical Alerts\n"
-      msg += "======================================\n"
-      msg += @historical_alerts.join("")
-
-      msg += "\n"
-      msg += "Current statistics\n"
+      msg = "Current statistics\n"
       msg += "======================================\n"
       msg += @statistics.join("")
 
@@ -81,7 +79,11 @@ module LogMonitor
       msg += "Current Alerts\n"
       msg += "======================================\n"
       msg += @current_alert.join("")
+
       msg += "\n"
+      msg += "Historical Alerts\n"
+      msg += "======================================\n"
+      msg += @historical_alerts.reverse.join("")
 
       Curses.addstr(msg)
       Curses.refresh

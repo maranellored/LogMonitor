@@ -4,11 +4,14 @@
 ##  Used to keep track of the stats in memory. 
 ##  Uses counters to keep track of historic values
 ##  Uses a queue to keep track of requests in the past time
+##  
+##  Uses thread safe data structures to keep
 ##
 ################################################################################
 
 require 'time'
 require 'thread'
+require 'thread_safe'
 
 module LogMonitor
   
@@ -20,11 +23,15 @@ module LogMonitor
       @logger = logger
 
       # used to keep track of the requests in the past time
-      @queue = []
+      # Using the thread safe version of array to ensure that multiple
+      # threads dont trample on this
+      @queue = ThreadSafe::Array.new
 
       # Create a hash to keep track of the sections. 
       # This hash will give out default values of 0 
       @section_counter = Hash.new 0
+      @client_counter = Hash.new 0
+
       @total_requests = 0
       @successful_requests = 0
       @get_requests = 0
@@ -43,6 +50,10 @@ module LogMonitor
       @section_counter[section] += 1
     end
 
+    def add_client_address(address)
+      @client_counter[address] += 1
+    end
+
     def add_successful_request
       @successful_requests += 1
     end
@@ -56,6 +67,19 @@ module LogMonitor
     # Returns an array with key as the first element and the value as second
     def find_most_common_section
       return @section_counter.max_by{|k, v| v}
+    end
+
+    # Retrives the address of the client who has made the most
+    # number of requests to this web server
+    def get_most_frequent_client
+      client, request_count = @client_counter.max_by{|k, v| v}
+      return client
+    end
+
+    # Retrieves the total number of unique clients that have made
+    # requests to this web server
+    def get_unique_clients
+      return @client_counter.length
     end
 
     # Add the request timestamp to the queue

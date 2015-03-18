@@ -15,15 +15,17 @@ module LogMonitor
     
     COMMON_LOG_FORMAT = '%h %l %u %t \"%r\" %>s %b'
 
-    def initialize(filename, alarm_threshold, alarm_interval, stats_frequency, logger)
+    def initialize(filename, alarm_threshold, alarm_interval, stats_frequency, url, logger)
       @logger = logger
 
+      @url = url
       @filename = filename
       @stats_frequency = stats_frequency
 
       @parser = ApacheLogRegex.new(COMMON_LOG_FORMAT)
     
       @printer = ConsolePrinter.new(@logger)
+
 
       @stats_buffer = StatBuffer.new(alarm_interval, alarm_threshold, @printer, @logger)
 
@@ -96,12 +98,13 @@ module LogMonitor
         result = @parser.parse!(line)
       rescue ApacheLogRegex::ParseError => e
         # Found an invalid log line
+        @logger.error("Invalid log line in file - #{line}")
         return  
       end
 
       requester = result['%h']
-      method, url, protocol = result['%r'].split
-      section = url.split('/')[0..1].join('/')
+      method, resource, protocol = result['%r'].split
+      section = @url + resource.split('/')[0..1].join('/')
       status = result['%>s']
       # Remove braces from the timestamp
       timestamp_string = result['%t'].delete('[]')
@@ -113,8 +116,14 @@ module LogMonitor
       @stats_buffer.add_section(section)
       @stats_buffer.add_get_request if method.upcase.eql? 'GET'
       @stats_buffer.add_successful_request if status.eql? "200"    
+      @stats_buffer.add_client_address(requester)
     end
 
+    # A method used by a thread to gather statistics about the web 
+    # server from the log files. 
+    # The statistics are stored everytime a request is processed
+    # This method only retrieves ths stats and publishes them to the
+    # console. 
     def gather_statistics
       while @keep_running
         stats_map = {}
@@ -123,6 +132,8 @@ module LogMonitor
         stats_map[:requests] = @stats_buffer.total_requests
         stats_map[:get_requests] = @stats_buffer.get_requests
         stats_map[:successful_requests] = @stats_buffer.successful_requests
+        stats_map[:unique_clients] = @stats_buffer.get_unique_clients
+        stats_map[:most_frequent_client] = @stats_buffer.get_most_frequent_client
         @printer.print_stats(stats_map)
         sleep(@stats_frequency)
       end
