@@ -17,7 +17,7 @@ Usage
 
 Pre-requisites:
 
-Needs [bundler](http://bundler.io) to setup the ruby dependencies (rspec and simplecov). Run the following
+Needs [bundler](http://bundler.io) to setup the ruby dependencies (rspec, simplecov, curses, apachelogregex and thread_safe). Run the following
 ```
 $ gem install bundler
 $ git clone https://github.com/maranellored/LogMonitor.git 
